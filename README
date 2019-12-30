@@ -1,3 +1,15 @@
+This can be used to check if your MySQL-installation is insecure allowing unprivileged users to gain root permissions and should help you to secure your infrastructure.
+
+Disclaimer:
+Use this only on systems you own or/and have explicit permission to (like in pentests or IT-security-lab-environment).
+If you use this, you are fully rensponsible for everything that results.
+Including but not limited to:
+- malfunctioning services
+- financial damages
+- getting fired
+...
+
+Description:
 If MySQL is running as root, it is possible to craft a user defined function that executes commands with root permissions.
 This way it is possible to escalate privileges.
 
@@ -30,3 +42,19 @@ Steps:
 
 Source:
 https://infamoussyn.wordpress.com/2014/07/11/gaining-a-root-shell-using-mysql-user-defined-functions-and-setuid-binaries/
+
+Solution:
+If this works on your machine, you should do the following:
+- Update your software as possible
+- set/change a password for MySQL-root-user
+- reconfigure mysql to run as a different user as root (e.g. user: mysql)
+	- should be default on installing (see my.cnf)
+- reconfigure other services which might run as root to run under lower privileged user accounts
+- restrict access to mysql-UDF (user defined functions)
+	- REVOKE EXECUTE ON FUNCTION mydb.myfunc FROM 'someuser'@'somehost';
+- change password for system-root
+- check your system for root owned files with SUID-set and change permissions as needed
+	- find / -perm -u=s -type f 2>/dev/null
+	- find / -user root -perm -u=s -type f 2>/dev/null
+- check your system for root owned files which are writable to low privileged user and change permissions as needed
+	- find / -user root -perm -002 -type f 
